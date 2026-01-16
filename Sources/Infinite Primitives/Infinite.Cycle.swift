@@ -107,52 +107,10 @@ extension Infinite.Cycle: Infinite.Observable where Base: RandomAccessCollection
     ///
     /// For efficiency, this shifts the internal view rather than copying.
     @inlinable
-    public var tail: Infinite.Cycle<RotatedCollection<Base>> {
-        let rotated = RotatedCollection(base: base, startOffset: 1)
-        return Infinite.Cycle<RotatedCollection<Base>>(__unchecked: (), rotated)
+    public var tail: Infinite.Cycle<Infinite.Rotated<Base>> {
+        let rotated = Infinite.Rotated(base: base, startOffset: 1)
+        return Infinite.Cycle<Infinite.Rotated<Base>>(__unchecked: (), rotated)
     }
-}
-
-/// A collection that presents a rotated view of another collection.
-///
-/// Used internally by `Cycle` to implement efficient `tail` without copying.
-public struct RotatedCollection<Base: RandomAccessCollection & Sendable>: RandomAccessCollection, Sendable
-where Base.Element: Sendable {
-    @usableFromInline
-    let base: Base
-
-    @usableFromInline
-    let startOffset: Int
-
-    @inlinable
-    init(base: Base, startOffset: Int) {
-        self.base = base
-        self.startOffset = startOffset % base.count
-    }
-
-    @inlinable
-    public var startIndex: Int { 0 }
-
-    @inlinable
-    public var endIndex: Int { base.count }
-
-    @inlinable
-    public subscript(position: Int) -> Base.Element {
-        let actualIndex = (startOffset + position) % base.count
-        return base[base.index(base.startIndex, offsetBy: actualIndex)]
-    }
-
-    @inlinable
-    public func index(after i: Int) -> Int { i + 1 }
-
-    @inlinable
-    public func index(before i: Int) -> Int { i - 1 }
-
-    @inlinable
-    public func index(_ i: Int, offsetBy distance: Int) -> Int { i + distance }
-
-    @inlinable
-    public func distance(from start: Int, to end: Int) -> Int { end - start }
 }
 
 // MARK: - Equatable

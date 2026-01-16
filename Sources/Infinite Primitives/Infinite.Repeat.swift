@@ -51,36 +51,10 @@ extension Infinite.Repeat: Infinite.Observable {
     public var tail: Self { self }
 }
 
-// MARK: - Sequence
-
-extension Infinite.Repeat: Sequence {
-    /// Returns an iterator over this infinite repetition.
-    @inlinable
-    public func makeIterator() -> Iterator {
-        Iterator(value)
-    }
-
-    /// An iterator that produces the same value indefinitely.
-    public struct Iterator: IteratorProtocol, Sendable {
-        @usableFromInline
-        let value: Element
-
-        @inlinable
-        init(_ value: Element) {
-            self.value = value
-        }
-
-        /// Returns the repeated value.
-        @inlinable
-        public mutating func next() -> Element? {
-            value
-        }
-    }
-}
-
 // MARK: - Enumerable
-
-extension Infinite.Repeat: Infinite.Enumerable {}
+//
+// Sequence conformance is provided via Observable: Enumerable: Sequence.
+// Iterator is Infinite.Observable.Iterator (see Infinite.Observable.Iterator.swift).
 
 // MARK: - Equatable
 

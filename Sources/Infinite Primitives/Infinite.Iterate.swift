@@ -73,39 +73,7 @@ extension Infinite.Iterate: Infinite.Observable {
     }
 }
 
-// MARK: - Sequence
-
-extension Infinite.Iterate: Sequence {
-    /// Returns an iterator over this iteration sequence.
-    @inlinable
-    public func makeIterator() -> Iterator {
-        Iterator(initial: initial, transform: transform)
-    }
-
-    /// An iterator that applies a function repeatedly.
-    public struct Iterator: IteratorProtocol, Sendable {
-        @usableFromInline
-        var current: Element
-
-        @usableFromInline
-        let transform: @Sendable (Element) -> Element
-
-        @inlinable
-        init(initial: Element, transform: @escaping @Sendable (Element) -> Element) {
-            self.current = initial
-            self.transform = transform
-        }
-
-        /// Returns the current value and advances by applying the transform.
-        @inlinable
-        public mutating func next() -> Element? {
-            let result = current
-            current = transform(current)
-            return result
-        }
-    }
-}
-
 // MARK: - Enumerable
-
-extension Infinite.Iterate: Infinite.Enumerable {}
+//
+// Sequence conformance is provided via Observable: Enumerable: Sequence.
+// Iterator is Infinite.Observable.Iterator (see Infinite.Observable.Iterator.swift).

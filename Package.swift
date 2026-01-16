@@ -19,6 +19,7 @@ let package = Package(
     ],
     dependencies: [
         .package(path: "../swift-test-primitives"),
+        .package(path: "../../swift-foundations/swift-testing-extras"),
     ],
     targets: [
         .target(
@@ -30,6 +31,7 @@ let package = Package(
             dependencies: [
                 "Infinite Primitives",
                 .product(name: "Test Primitives", package: "swift-test-primitives"),
+                .product(name: "Testing Extras", package: "swift-testing-extras"),
             ]
         ),
     ],

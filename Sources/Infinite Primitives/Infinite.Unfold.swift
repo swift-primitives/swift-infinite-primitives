@@ -79,39 +79,7 @@ extension Infinite.Unfold: Infinite.Observable {
     }
 }
 
-// MARK: - Sequence
-
-extension Infinite.Unfold: Sequence {
-    /// Returns an iterator over this unfolding sequence.
-    @inlinable
-    public func makeIterator() -> Iterator {
-        Iterator(state: seed, step: step)
-    }
-
-    /// An iterator that unfolds state into elements.
-    public struct Iterator: IteratorProtocol, Sendable {
-        @usableFromInline
-        var state: State
-
-        @usableFromInline
-        let step: @Sendable (State) -> (Element, State)
-
-        @inlinable
-        init(state: State, step: @escaping @Sendable (State) -> (Element, State)) {
-            self.state = state
-            self.step = step
-        }
-
-        /// Returns the next element and advances the state.
-        @inlinable
-        public mutating func next() -> Element? {
-            let (element, nextState) = step(state)
-            state = nextState
-            return element
-        }
-    }
-}
-
 // MARK: - Enumerable
-
-extension Infinite.Unfold: Infinite.Enumerable {}
+//
+// Sequence conformance is provided via Observable: Enumerable: Sequence.
+// Iterator is Infinite.Observable.Iterator (see Infinite.Observable.Iterator.swift).

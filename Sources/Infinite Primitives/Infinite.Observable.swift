@@ -71,37 +71,3 @@ extension Infinite {
         var tail: Tail { get }
     }
 }
-
-// MARK: - Homogeneous Observable Iterator
-
-/// An iterator for Observable types where Tail == Self.
-///
-/// Converts coalgebraic observation (head/tail) into iterative access.
-/// Only available when the tail type equals the source type, enabling
-/// efficient iteration without type erasure.
-public struct HomogeneousObservableIterator<Source: Infinite.Observable>: IteratorProtocol, Sendable
-where Source.Tail == Source {
-    @usableFromInline
-    var current: Source
-
-    @inlinable
-    init(_ source: Source) {
-        self.current = source
-    }
-
-    /// Returns the next element, advancing the iterator.
-    @inlinable
-    public mutating func next() -> Source.Element? {
-        let element = current.head
-        current = current.tail
-        return element
-    }
-}
-
-extension Infinite.Observable where Tail == Self {
-    /// Returns an iterator for homogeneous observable sequences.
-    @inlinable
-    public func makeIterator() -> HomogeneousObservableIterator<Self> {
-        HomogeneousObservableIterator(self)
-    }
-}
