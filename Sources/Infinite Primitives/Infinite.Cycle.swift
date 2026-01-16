@@ -1,6 +1,8 @@
 // Infinite.Cycle.swift
 // Cycling through a finite collection indefinitely.
 
+public import Container_Primitives
+
 extension Infinite {
     /// An infinite sequence that cycles through a finite collection.
     ///
@@ -107,9 +109,9 @@ extension Infinite.Cycle: Infinite.Observable where Base: RandomAccessCollection
     ///
     /// For efficiency, this shifts the internal view rather than copying.
     @inlinable
-    public var tail: Infinite.Cycle<Infinite.Rotated<Base>> {
-        let rotated = Infinite.Rotated(base: base, startOffset: 1)
-        return Infinite.Cycle<Infinite.Rotated<Base>>(__unchecked: (), rotated)
+    public var tail: Infinite.Cycle<Collection.Rotated<Base>> {
+        let rotated = Collection.Rotated(base: base, startOffset: 1)
+        return Infinite.Cycle<Collection.Rotated<Base>>(__unchecked: (), rotated)
     }
 }
 
