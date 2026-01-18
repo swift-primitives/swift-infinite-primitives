@@ -1,11 +1,11 @@
 // Infinite.Repeat Tests.swift
 
 import Testing
-import Testing_Extras
+import Testing
 
 @testable import Infinite_Primitives
 
-// Note: Generic types cannot use #TestSuites directly.
+// Note: Generic types cannot use #Tests directly.
 // We use @Suite with nested structure to match the organizational pattern.
 
 @Suite("Infinite.Repeat")
