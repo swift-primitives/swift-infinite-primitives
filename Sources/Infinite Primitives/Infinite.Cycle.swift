@@ -1,7 +1,7 @@
 // Infinite.Cycle.swift
 // Cycling through a finite collection indefinitely.
 
-public import Container_Primitives
+public import Collection_Primitives
 
 extension Infinite {
     /// An infinite sequence that cycles through a finite collection.

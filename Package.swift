@@ -18,13 +18,13 @@ let package = Package(
         )
     ],
     dependencies: [
-        .package(path: "../swift-container-primitives")
+        .package(path: "../swift-collection-primitives")
     ],
     targets: [
         .target(
             name: "Infinite Primitives",
             dependencies: [
-                .product(name: "Container Primitives", package: "swift-container-primitives")
+                .product(name: "Collection Primitives", package: "swift-collection-primitives")
             ]
         )
     ],
