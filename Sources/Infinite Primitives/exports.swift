@@ -1,4 +1,5 @@
 // exports.swift
-// Public API exports.
+// Re-export dependencies for consumers.
 
-public typealias Infinite_Primitives = Infinite
+@_exported import Collection_Primitives
+@_exported import Input_Primitives
