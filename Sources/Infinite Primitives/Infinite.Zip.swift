@@ -84,7 +84,7 @@ extension Infinite.Zip: Sequence {
     }
 
     /// An iterator that pairs elements from two sources.
-    public struct Iterator: IteratorProtocol {
+    public struct Iterator: Sequence.Iterator.`Protocol`, IteratorProtocol {
         @usableFromInline
         var first: First.Iterator
 

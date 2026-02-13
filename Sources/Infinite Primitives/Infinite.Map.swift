@@ -61,7 +61,7 @@ extension Infinite.Map: Sequence {
     }
 
     /// An iterator that applies a transformation to each element.
-    public struct Iterator: IteratorProtocol {
+    public struct Iterator: Sequence.Iterator.`Protocol`, IteratorProtocol {
         @usableFromInline
         var base: Source.Iterator
 

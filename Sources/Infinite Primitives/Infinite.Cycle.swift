@@ -64,7 +64,7 @@ extension Infinite.Cycle: Sequence {
     }
 
     /// An iterator that cycles through a collection indefinitely.
-    public struct Iterator: IteratorProtocol {
+    public struct Iterator: Sequence.Iterator.`Protocol`, IteratorProtocol {
         @usableFromInline
         let base: Base
 

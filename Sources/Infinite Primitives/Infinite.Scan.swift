@@ -76,7 +76,7 @@ extension Infinite.Scan: Sequence {
     }
 
     /// An iterator that produces running accumulations.
-    public struct Iterator: IteratorProtocol {
+    public struct Iterator: Sequence.Iterator.`Protocol`, IteratorProtocol {
         @usableFromInline
         var accumulator: Result
 
