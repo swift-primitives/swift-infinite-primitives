@@ -28,7 +28,13 @@ let package = Package(
                 .product(name: "Collection Primitives", package: "swift-collection-primitives"),
                 .product(name: "Input Primitives", package: "swift-input-primitives"),
             ]
-        )
+        ),
+        .testTarget(
+            name: "Infinite Primitives Tests",
+            dependencies: [
+                "Infinite Primitives",
+            ]
+        ),
     ],
     swiftLanguageModes: [.v6]
 )
@@ -39,6 +45,7 @@ for target in package.targets where ![.system, .binary, .plugin, .macro].contain
         .enableUpcomingFeature("ExistentialAny"),
         .enableUpcomingFeature("InternalImportsByDefault"),
         .enableUpcomingFeature("MemberImportVisibility"),
+        .enableUpcomingFeature("NonisolatedNonsendingByDefault"),
         .enableExperimentalFeature("Lifetimes"),
         .enableExperimentalFeature("SuppressedAssociatedTypes"),
         .enableExperimentalFeature("SuppressedAssociatedTypesWithDefaults"),
