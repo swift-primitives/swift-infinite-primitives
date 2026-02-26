@@ -73,7 +73,7 @@ extension Infinite {
 
 // MARK: - Sequence
 
-extension Infinite.Zip: Sequence {
+extension Infinite.Zip: Swift.Sequence {
     /// The element type: a tuple of elements from both sources.
     public typealias Element = (First.Element, Second.Element)
 

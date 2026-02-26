@@ -53,7 +53,7 @@ extension Infinite {
 
 // MARK: - Sequence
 
-extension Infinite.Map: Sequence {
+extension Infinite.Map: Swift.Sequence {
     /// Returns an iterator over this mapped sequence.
     @inlinable
     public func makeIterator() -> Iterator {

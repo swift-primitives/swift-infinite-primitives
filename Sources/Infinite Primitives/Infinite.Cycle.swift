@@ -27,7 +27,7 @@ extension Infinite {
     /// `Cycle` conforms to `Observable` when the base collection is a
     /// `RandomAccessCollection`, enabling efficient head/tail decomposition.
     /// For other collection types, only `Sequence` and `Enumerable` are provided.
-    public struct Cycle<Base: Collection & Sendable>: Sendable
+    public struct Cycle<Base: Swift.Collection & Sendable>: Sendable
     where Base.Element: Sendable {
         /// The finite collection being cycled.
         @usableFromInline
@@ -56,7 +56,7 @@ extension Infinite {
 
 // MARK: - Sequence
 
-extension Infinite.Cycle: Sequence {
+extension Infinite.Cycle: Swift.Sequence {
     /// Returns an iterator over this cycling sequence.
     @inlinable
     public func makeIterator() -> Iterator {
@@ -98,7 +98,7 @@ extension Infinite.Cycle: Infinite.Enumerable {}
 
 // MARK: - Observable (RandomAccessCollection)
 
-extension Infinite.Cycle: Infinite.Observable where Base: RandomAccessCollection {
+extension Infinite.Cycle: Infinite.Observable where Base: Swift.RandomAccessCollection {
     /// The first element of the cycle (same as first element of base).
     @inlinable
     public var head: Base.Element {
@@ -110,7 +110,7 @@ extension Infinite.Cycle: Infinite.Observable where Base: RandomAccessCollection
     /// For efficiency, this shifts the internal view rather than copying.
     @inlinable
     public var tail: Infinite.Cycle<Collection.Rotated<Base>> {
-        let rotated = Collection.Rotated(base: base, startOffset: 1)
+        let rotated = Collection.Rotated(base: base, startOffset: .one)
         return Infinite.Cycle<Collection.Rotated<Base>>(__unchecked: (), rotated)
     }
 }

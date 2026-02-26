@@ -71,5 +71,5 @@ extension Infinite {
     /// - ``Map``: Lazy transformation
     /// - ``Zip``: Parallel combination
     /// - ``Scan``: Running accumulation
-    public protocol Enumerable: Sequence, Sendable {}
+    public protocol Enumerable: Swift.Sequence, Sendable {}
 }

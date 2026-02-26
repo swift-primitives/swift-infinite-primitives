@@ -68,7 +68,7 @@ extension Infinite {
 
 // MARK: - Sequence
 
-extension Infinite.Scan: Sequence {
+extension Infinite.Scan: Swift.Sequence {
     /// Returns an iterator over this scanning sequence.
     @inlinable
     public func makeIterator() -> Iterator {
