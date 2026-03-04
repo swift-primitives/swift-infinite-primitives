@@ -29,8 +29,7 @@ extension Infinite {
     ///
     /// `Zip` conforms to `Observable` when both sources do. The `Tail` type
     /// is `Zip<First.Tail, Second.Tail>`.
-    public struct Zip<First: Infinite.Enumerable & Sendable, Second: Infinite.Enumerable & Sendable>: Sendable
-    where First.Element: Sendable, Second.Element: Sendable {
+    public struct Zip<First: Infinite.Enumerable, Second: Infinite.Enumerable>: Sendable {
         /// The first source sequence.
         @usableFromInline
         let first: First
@@ -62,11 +61,10 @@ extension Infinite {
     ///   - second: The second infinite sequence.
     /// - Returns: An infinite sequence of paired elements.
     @inlinable
-    public static func zip<First: Infinite.Enumerable & Sendable, Second: Infinite.Enumerable & Sendable>(
+    public static func zip<First: Infinite.Enumerable, Second: Infinite.Enumerable>(
         _ first: First,
         _ second: Second
-    ) -> Infinite.Zip<First, Second>
-    where First.Element: Sendable, Second.Element: Sendable {
+    ) -> Infinite.Zip<First, Second> {
         Infinite.Zip(first, second)
     }
 }

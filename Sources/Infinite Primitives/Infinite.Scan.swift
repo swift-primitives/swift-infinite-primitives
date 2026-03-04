@@ -34,7 +34,7 @@ extension Infinite {
     /// ```
     /// scan(s, xs, f) = s : scan(f(s, head(xs)), tail(xs), f)
     /// ```
-    public struct Scan<Source: Infinite.Enumerable & Sendable, Result: Sendable>: Sendable {
+    public struct Scan<Source: Infinite.Enumerable, Result: Sendable> {
         /// The initial accumulator value.
         @usableFromInline
         let initial: Result

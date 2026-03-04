@@ -37,7 +37,7 @@ extension Infinite {
     ///
     /// Use `Iterate` when your generator is a simple endomorphism (same type in/out).
     /// Use `Unfold` when you need separate state from output values.
-    public struct Iterate<Element: Sendable>: Sendable {
+    public struct Iterate<Element: Sendable> {
         /// The current value in the iteration.
         @usableFromInline
         let initial: Element

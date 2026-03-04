@@ -29,7 +29,7 @@ extension Infinite {
     ///
     /// `Map` conforms to `Observable` when the source does. The `Tail` type
     /// is `Map<Source.Tail, Element>`, enabling heterogeneous transformer chains.
-    public struct Map<Source: Infinite.Enumerable & Sendable, Element: Sendable>: Sendable {
+    public struct Map<Source: Infinite.Enumerable, Element>: Sendable {
         /// The source infinite sequence.
         @usableFromInline
         let source: Source
@@ -91,7 +91,7 @@ extension Infinite.Map: Infinite.Enumerable {}
 // MARK: - Observable
 
 extension Infinite.Map: Infinite.Observable
-where Source: Infinite.Observable {
+where Source: Infinite.Observable, Element: Sendable {
     /// The transformed head element.
     @inlinable
     public var head: Element {
@@ -113,7 +113,7 @@ extension Infinite.Enumerable where Self: Sendable {
     /// - Parameter transform: A closure that transforms each element.
     /// - Returns: An infinite sequence of transformed elements.
     @inlinable
-    public func map<T: Sendable>(_ transform: @escaping @Sendable (Element) -> T) -> Infinite.Map<Self, T> {
+    public func map<T>(_ transform: @escaping @Sendable (Element) -> T) -> Infinite.Map<Self, T> {
         Infinite.Map(self, transform)
     }
 }

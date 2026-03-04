@@ -40,7 +40,7 @@ extension Infinite {
     ///
     /// Use `Iterate` when `f: A → A` suffices. Use `Unfold` when you need
     /// hidden state (e.g., Fibonacci needs pair state but emits single values).
-    public struct Unfold<State: Sendable, Element: Sendable>: Sendable {
+    public struct Unfold<State: Sendable, Element: Sendable> {
         /// The current state of the unfold.
         @usableFromInline
         let seed: State
