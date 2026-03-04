@@ -25,7 +25,7 @@ extension Infinite {
     ///
     /// In category theory, this is the unique morphism from the terminal object
     /// to the carrier of the stream coalgebra.
-    public struct Repeat<Element: Sendable> {
+    public struct Repeat<Element> {
         /// The value repeated infinitely.
         public let value: Element
 
@@ -38,6 +38,10 @@ extension Infinite {
         }
     }
 }
+
+// MARK: - Sendable
+
+extension Infinite.Repeat: Sendable where Element: Sendable {}
 
 // MARK: - Observable
 

@@ -57,7 +57,7 @@ extension Infinite {
     /// The `Tail` associated type is constrained to `Observable` with matching `Element`.
     /// This captures the coalgebraic essence: the tail of an infinite sequence is also
     /// an infinite sequence of the same element type.
-    public protocol Observable: Enumerable, Sendable where Element: Sendable {
+    public protocol Observable: Enumerable {
         /// The type of the tail (remaining sequence after head).
         ///
         /// Often `Self`, but may differ for transformer types like `Map` or `Zip`.

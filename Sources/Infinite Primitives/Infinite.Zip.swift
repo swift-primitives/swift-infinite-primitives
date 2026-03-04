@@ -29,7 +29,7 @@ extension Infinite {
     ///
     /// `Zip` conforms to `Observable` when both sources do. The `Tail` type
     /// is `Zip<First.Tail, Second.Tail>`.
-    public struct Zip<First: Infinite.Enumerable, Second: Infinite.Enumerable>: Sendable {
+    public struct Zip<First: Infinite.Enumerable, Second: Infinite.Enumerable> {
         /// The first source sequence.
         @usableFromInline
         let first: First
@@ -104,6 +104,9 @@ extension Infinite.Zip: Swift.Sequence {
     }
 }
 
+// MARK: - Sendable
+
+extension Infinite.Zip: Sendable where First: Sendable, Second: Sendable {}
 extension Infinite.Zip.Iterator: Sendable where First.Iterator: Sendable, Second.Iterator: Sendable {}
 
 // MARK: - Enumerable

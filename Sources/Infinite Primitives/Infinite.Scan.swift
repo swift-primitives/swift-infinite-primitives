@@ -34,7 +34,7 @@ extension Infinite {
     /// ```
     /// scan(s, xs, f) = s : scan(f(s, head(xs)), tail(xs), f)
     /// ```
-    public struct Scan<Source: Infinite.Enumerable, Result: Sendable> {
+    public struct Scan<Source: Infinite.Enumerable, Result> {
         /// The initial accumulator value.
         @usableFromInline
         let initial: Result
@@ -114,7 +114,10 @@ extension Infinite.Scan: Swift.Sequence {
     }
 }
 
-extension Infinite.Scan.Iterator: Sendable where Source.Iterator: Sendable {}
+// MARK: - Sendable
+
+extension Infinite.Scan: Sendable where Source: Sendable, Result: Sendable {}
+extension Infinite.Scan.Iterator: Sendable where Source.Iterator: Sendable, Result: Sendable {}
 
 // MARK: - Enumerable
 
@@ -122,7 +125,7 @@ extension Infinite.Scan: Infinite.Enumerable {}
 
 // MARK: - Enumerable Extension
 
-extension Infinite.Enumerable where Self: Sendable {
+extension Infinite.Enumerable {
     /// Returns an infinite sequence of running accumulations.
     ///
     /// - Parameters:
@@ -130,7 +133,7 @@ extension Infinite.Enumerable where Self: Sendable {
     ///   - combine: A function that combines the accumulator with each element.
     /// - Returns: An infinite sequence of accumulator values.
     @inlinable
-    public func scan<T: Sendable>(
+    public func scan<T>(
         initial: T,
         _ combine: @escaping @Sendable (T, Element) -> T
     ) -> Infinite.Scan<Self, T> {

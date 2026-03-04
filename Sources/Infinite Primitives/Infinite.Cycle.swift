@@ -27,7 +27,7 @@ extension Infinite {
     /// `Cycle` conforms to `Observable` when the base collection is a
     /// `RandomAccessCollection`, enabling efficient head/tail decomposition.
     /// For other collection types, only `Sequence` and `Enumerable` are provided.
-    public struct Cycle<Base: Swift.Collection & Sendable>: Sendable
+    public struct Cycle<Base: Swift.Collection & Sendable>
     where Base.Element: Sendable {
         /// The finite collection being cycled.
         @usableFromInline
@@ -90,6 +90,9 @@ extension Infinite.Cycle: Swift.Sequence {
     }
 }
 
+// MARK: - Sendable
+
+extension Infinite.Cycle: Sendable {}
 extension Infinite.Cycle.Iterator: Sendable where Base.Index: Sendable {}
 
 // MARK: - Enumerable

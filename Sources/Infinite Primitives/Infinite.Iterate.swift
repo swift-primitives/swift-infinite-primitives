@@ -37,7 +37,7 @@ extension Infinite {
     ///
     /// Use `Iterate` when your generator is a simple endomorphism (same type in/out).
     /// Use `Unfold` when you need separate state from output values.
-    public struct Iterate<Element: Sendable> {
+    public struct Iterate<Element> {
         /// The current value in the iteration.
         @usableFromInline
         let initial: Element
@@ -58,6 +58,10 @@ extension Infinite {
         }
     }
 }
+
+// MARK: - Sendable
+
+extension Infinite.Iterate: Sendable where Element: Sendable {}
 
 // MARK: - Observable
 

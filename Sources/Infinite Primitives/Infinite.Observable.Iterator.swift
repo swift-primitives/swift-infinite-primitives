@@ -26,7 +26,7 @@
 /// - Note: This type is hoisted to module level with `__` prefix because Swift
 ///   doesn't allow types nested in protocols. The canonical name is
 ///   `Infinite.Observable.Iterator` (reflected in file name and documentation).
-public struct __InfiniteObservableIterator<Source: Infinite.Observable>: Sequence.Iterator.`Protocol`, IteratorProtocol, Sendable
+public struct __InfiniteObservableIterator<Source: Infinite.Observable>: Sequence.Iterator.`Protocol`, IteratorProtocol
 where Source.Tail == Source {
     @usableFromInline
     var current: Source
@@ -44,6 +44,10 @@ where Source.Tail == Source {
         return element
     }
 }
+
+// MARK: - Sendable
+
+extension __InfiniteObservableIterator: Sendable where Source: Sendable {}
 
 // MARK: - Sequence Conformance
 
