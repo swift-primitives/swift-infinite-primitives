@@ -13,7 +13,7 @@ extension Infinite {
     ///
     /// ```swift
     /// let colors = Infinite.Cycle(["red", "green", "blue"])!
-    /// print(Array(colors.prefix(7)))
+    /// let first7 = colors.prefix(7)
     /// // ["red", "green", "blue", "red", "green", "blue", "red"]
     /// ```
     ///
@@ -26,7 +26,7 @@ extension Infinite {
     ///
     /// `Cycle` conforms to `Observable` when the base collection is a
     /// `RandomAccessCollection`, enabling efficient head/tail decomposition.
-    /// For other collection types, only `Sequence` and `Enumerable` are provided.
+    /// For other collection types, only `Enumerable` is provided.
     public struct Cycle<Base: Swift.Collection> {
         /// The finite collection being cycled.
         @usableFromInline
@@ -53,9 +53,9 @@ extension Infinite {
     }
 }
 
-// MARK: - Sequence
+// MARK: - Iteration
 
-extension Infinite.Cycle: Swift.Sequence {
+extension Infinite.Cycle {
     /// Returns an iterator over this cycling sequence.
     @inlinable
     public func makeIterator() -> Iterator {
@@ -63,20 +63,68 @@ extension Infinite.Cycle: Swift.Sequence {
     }
 
     /// An iterator that cycles through a collection indefinitely.
-    public struct Iterator: Sequence.Iterator.`Protocol`, IteratorProtocol {
+    ///
+    /// Uses the **heap buffer** iterator strategy: a single heap-allocated
+    /// element buffer for span-based access. One allocation per iterator
+    /// lifetime. The `deinit` ensures deterministic cleanup.
+    @safe public struct Iterator: ~Copyable, Sequence.Iterator.`Protocol` {
+        public typealias Element = Base.Element
+
         @usableFromInline
         let base: Base
 
         @usableFromInline
         var index: Base.Index
 
+        @usableFromInline
+        let _mutableBuffer: UnsafeMutablePointer<Base.Element>
+
+        @usableFromInline
+        var _bufferPtr: UnsafePointer<Base.Element>
+
+        @usableFromInline
+        var _bufferInitialized: Bool
+
         @inlinable
         init(base: Base) {
             self.base = base
             self.index = base.startIndex
+            let buf = UnsafeMutablePointer<Base.Element>.allocate(capacity: 1)
+            unsafe self._mutableBuffer = buf
+            unsafe self._bufferPtr = UnsafePointer(buf)
+            self._bufferInitialized = false
+        }
+
+        deinit {
+            if _bufferInitialized {
+                unsafe _mutableBuffer.deinitialize(count: 1)
+            }
+            unsafe _mutableBuffer.deallocate()
+        }
+
+        /// Returns the next batch of elements as a contiguous span.
+        @_lifetime(&self)
+        @inlinable
+        public mutating func nextSpan(maximumCount: Cardinal) -> Span<Base.Element> {
+            guard maximumCount > .zero else {
+                return unsafe Span(_unsafeStart: _bufferPtr, count: 0)
+            }
+            let element = base[index]
+            base.formIndex(after: &index)
+            if index == base.endIndex {
+                index = base.startIndex
+            }
+            if _bufferInitialized {
+                unsafe _mutableBuffer.deinitialize(count: 1)
+            }
+            unsafe _mutableBuffer.initialize(to: element)
+            _bufferInitialized = true
+            let span = unsafe Span(_unsafeStart: _bufferPtr, count: 1)
+            return unsafe _overrideLifetime(span, mutating: &self)
         }
 
         /// Returns the next element, wrapping to the start when exhausted.
+        @_lifetime(self: immortal)
         @inlinable
         public mutating func next() -> Base.Element? {
             let element = base[index]
@@ -92,7 +140,7 @@ extension Infinite.Cycle: Swift.Sequence {
 // MARK: - Sendable
 
 extension Infinite.Cycle: Sendable where Base: Sendable {}
-extension Infinite.Cycle.Iterator: Sendable where Base: Sendable, Base.Index: Sendable {}
+extension Infinite.Cycle.Iterator: @unchecked Sendable where Base: Sendable, Base.Index: Sendable {}
 
 // MARK: - Enumerable
 

@@ -27,7 +27,7 @@ extension Infinite {
     /// | Any infinite sequence | Copattern-based |
     ///
     /// All concrete types in this package conform to both when possible.
-    /// Use `Enumerable` for iterator-based algorithms (e.g., `prefix`, `dropFirst`).
+    /// Use `Enumerable` for iterator-based algorithms (e.g., `prefix`).
     /// Use `Observable` for coalgebraic algorithms (e.g., corecursion, bisimulation).
     ///
     /// ## Use Cases
@@ -41,25 +41,9 @@ extension Infinite {
     /// ## Example
     ///
     /// ```swift
-    /// struct Fibonacci: Infinite.Enumerable {
-    ///     func makeIterator() -> Iterator {
-    ///         Iterator()
-    ///     }
-    ///
-    ///     struct Iterator: IteratorProtocol, Sendable {
-    ///         var a = 0, b = 1
-    ///         mutating func next() -> Int? {
-    ///             let result = a
-    ///             (a, b) = (b, a + b)
-    ///             return result
-    ///         }
-    ///     }
-    /// }
-    ///
-    /// // Take first 10 Fibonacci numbers
-    /// for n in Fibonacci().prefix(10) {
-    ///     print(n)
-    /// }
+    /// let naturals = Infinite.Iterate(initial: 0) { $0 + 1 }
+    /// let first10 = naturals.prefix(10)
+    /// // [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
     /// ```
     ///
     /// ## Built-in Enumerable Types
@@ -71,5 +55,30 @@ extension Infinite {
     /// - ``Map``: Lazy transformation
     /// - ``Zip``: Parallel combination
     /// - ``Scan``: Running accumulation
-    public protocol Enumerable: Swift.Sequence {}
+    public protocol Enumerable {
+        associatedtype Element
+        associatedtype Iterator: ~Copyable, Sequence.Iterator.`Protocol`
+            where Iterator.Element == Element
+        func makeIterator() -> Iterator
+    }
+}
+
+// MARK: - Prefix
+
+extension Infinite.Enumerable where Element: Copyable {
+    /// Returns an array containing the first `maxLength` elements.
+    ///
+    /// - Parameter maxLength: The maximum number of elements to return.
+    /// - Returns: An array of up to `maxLength` elements.
+    @inlinable
+    public func prefix(_ maxLength: Int) -> [Element] {
+        var iter = makeIterator()
+        var result: [Element] = []
+        result.reserveCapacity(maxLength)
+        for _ in 0..<maxLength {
+            guard let element = iter.next() else { break }
+            result.append(element)
+        }
+        return result
+    }
 }

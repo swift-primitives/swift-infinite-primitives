@@ -1,6 +1,8 @@
 // Infinite.Zip.swift
 // Element-wise combination of two infinite sequences.
 
+public import Index_Primitives
+
 extension Infinite {
     /// An infinite sequence combining elements from two sources pairwise.
     ///
@@ -13,7 +15,7 @@ extension Infinite {
     /// let naturals = Infinite.Iterate(initial: 0) { $0 + 1 }
     /// let squares = naturals.map { $0 * $0 }
     /// let pairs = Infinite.Zip(naturals, squares)
-    /// print(Array(pairs.prefix(5)))
+    /// let first5 = pairs.prefix(5)
     /// // [(0, 0), (1, 1), (2, 4), (3, 9), (4, 16)]
     ///
     /// // Using static convenience
@@ -69,12 +71,9 @@ extension Infinite {
     }
 }
 
-// MARK: - Sequence
+// MARK: - Iteration
 
-extension Infinite.Zip: Swift.Sequence {
-    /// The element type: a tuple of elements from both sources.
-    public typealias Element = (First.Element, Second.Element)
-
+extension Infinite.Zip {
     /// Returns an iterator over this zipped sequence.
     @inlinable
     public func makeIterator() -> Iterator {
@@ -82,20 +81,67 @@ extension Infinite.Zip: Swift.Sequence {
     }
 
     /// An iterator that pairs elements from two sources.
-    public struct Iterator: Sequence.Iterator.`Protocol`, IteratorProtocol {
+    ///
+    /// Uses the **heap buffer** iterator strategy: a single heap-allocated
+    /// element buffer for span-based access. One allocation per iterator
+    /// lifetime. The `deinit` ensures deterministic cleanup.
+    @safe public struct Iterator: ~Copyable, Sequence.Iterator.`Protocol` {
+        public typealias Element = (First.Element, Second.Element)
+
         @usableFromInline
         var first: First.Iterator
 
         @usableFromInline
         var second: Second.Iterator
 
+        @usableFromInline
+        let _mutableBuffer: UnsafeMutablePointer<(First.Element, Second.Element)>
+
+        @usableFromInline
+        var _bufferPtr: UnsafePointer<(First.Element, Second.Element)>
+
+        @usableFromInline
+        var _bufferInitialized: Bool
+
         @inlinable
-        init(first: First.Iterator, second: Second.Iterator) {
+        init(first: consuming First.Iterator, second: consuming Second.Iterator) {
             self.first = first
             self.second = second
+            let buf = UnsafeMutablePointer<(First.Element, Second.Element)>.allocate(capacity: 1)
+            unsafe self._mutableBuffer = buf
+            unsafe self._bufferPtr = UnsafePointer(buf)
+            self._bufferInitialized = false
+        }
+
+        deinit {
+            if _bufferInitialized {
+                unsafe _mutableBuffer.deinitialize(count: 1)
+            }
+            unsafe _mutableBuffer.deallocate()
+        }
+
+        /// Returns the next batch of elements as a contiguous span.
+        @_lifetime(&self)
+        @inlinable
+        public mutating func nextSpan(maximumCount: Cardinal) -> Span<(First.Element, Second.Element)> {
+            guard maximumCount > .zero else {
+                return unsafe Span(_unsafeStart: _bufferPtr, count: 0)
+            }
+            guard let a = first.next(), let b = second.next() else {
+                return unsafe Span(_unsafeStart: _bufferPtr, count: 0)
+            }
+            let element = (a, b)
+            if _bufferInitialized {
+                unsafe _mutableBuffer.deinitialize(count: 1)
+            }
+            unsafe _mutableBuffer.initialize(to: element)
+            _bufferInitialized = true
+            let span = unsafe Span(_unsafeStart: _bufferPtr, count: 1)
+            return unsafe _overrideLifetime(span, mutating: &self)
         }
 
         /// Returns the next pair of elements.
+        @_lifetime(self: immortal)
         @inlinable
         public mutating func next() -> (First.Element, Second.Element)? {
             guard let a = first.next(), let b = second.next() else { return nil }
@@ -107,7 +153,7 @@ extension Infinite.Zip: Swift.Sequence {
 // MARK: - Sendable
 
 extension Infinite.Zip: Sendable where First: Sendable, Second: Sendable {}
-extension Infinite.Zip.Iterator: Sendable where First.Iterator: Sendable, Second.Iterator: Sendable {}
+extension Infinite.Zip.Iterator: @unchecked Sendable where First.Iterator: Sendable, Second.Iterator: Sendable {}
 
 // MARK: - Enumerable
 

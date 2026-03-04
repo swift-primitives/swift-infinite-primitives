@@ -1,6 +1,8 @@
 // Infinite.Scan.swift
 // Running accumulation over an infinite sequence (scanl).
 
+public import Index_Primitives
+
 extension Infinite {
     /// An infinite sequence of running accumulations.
     ///
@@ -13,11 +15,11 @@ extension Infinite {
     /// // Running sum of natural numbers
     /// let naturals = Infinite.Iterate(initial: 1) { $0 + 1 }
     /// let runningSums = Infinite.Scan(initial: 0, source: naturals) { acc, n in acc + n }
-    /// print(Array(runningSums.prefix(6))) // [0, 1, 3, 6, 10, 15]
+    /// let first6 = runningSums.prefix(6) // [0, 1, 3, 6, 10, 15]
     ///
     /// // Using the extension method
     /// let factorials = naturals.scan(initial: 1) { acc, n in acc * n }
-    /// print(Array(factorials.prefix(6))) // [1, 1, 2, 6, 24, 120]
+    /// let first6fac = factorials.prefix(6) // [1, 1, 2, 6, 24, 120]
     /// ```
     ///
     /// ## Behavior
@@ -66,9 +68,9 @@ extension Infinite {
     }
 }
 
-// MARK: - Sequence
+// MARK: - Iteration
 
-extension Infinite.Scan: Swift.Sequence {
+extension Infinite.Scan {
     /// Returns an iterator over this scanning sequence.
     @inlinable
     public func makeIterator() -> Iterator {
@@ -76,7 +78,13 @@ extension Infinite.Scan: Swift.Sequence {
     }
 
     /// An iterator that produces running accumulations.
-    public struct Iterator: Sequence.Iterator.`Protocol`, IteratorProtocol {
+    ///
+    /// Uses the **heap buffer** iterator strategy: a single heap-allocated
+    /// element buffer for span-based access. One allocation per iterator
+    /// lifetime. The `deinit` ensures deterministic cleanup.
+    @safe public struct Iterator: ~Copyable, Sequence.Iterator.`Protocol` {
+        public typealias Element = Result
+
         @usableFromInline
         var accumulator: Result
 
@@ -89,18 +97,66 @@ extension Infinite.Scan: Swift.Sequence {
         @usableFromInline
         var emittedInitial: Bool = false
 
+        @usableFromInline
+        let _mutableBuffer: UnsafeMutablePointer<Result>
+
+        @usableFromInline
+        var _bufferPtr: UnsafePointer<Result>
+
+        @usableFromInline
+        var _bufferInitialized: Bool
+
         @inlinable
         init(
             accumulator: Result,
-            source: Source.Iterator,
+            source: consuming Source.Iterator,
             combine: @escaping @Sendable (Result, Source.Element) -> Result
         ) {
             self.accumulator = accumulator
             self.source = source
             self.combine = combine
+            let buf = UnsafeMutablePointer<Result>.allocate(capacity: 1)
+            unsafe self._mutableBuffer = buf
+            unsafe self._bufferPtr = UnsafePointer(buf)
+            self._bufferInitialized = false
+        }
+
+        deinit {
+            if _bufferInitialized {
+                unsafe _mutableBuffer.deinitialize(count: 1)
+            }
+            unsafe _mutableBuffer.deallocate()
+        }
+
+        /// Returns the next batch of elements as a contiguous span.
+        @_lifetime(&self)
+        @inlinable
+        public mutating func nextSpan(maximumCount: Cardinal) -> Span<Result> {
+            guard maximumCount > .zero else {
+                return unsafe Span(_unsafeStart: _bufferPtr, count: 0)
+            }
+            let element: Result
+            if !emittedInitial {
+                emittedInitial = true
+                element = accumulator
+            } else {
+                guard let sourceElement = source.next() else {
+                    return unsafe Span(_unsafeStart: _bufferPtr, count: 0)
+                }
+                accumulator = combine(accumulator, sourceElement)
+                element = accumulator
+            }
+            if _bufferInitialized {
+                unsafe _mutableBuffer.deinitialize(count: 1)
+            }
+            unsafe _mutableBuffer.initialize(to: element)
+            _bufferInitialized = true
+            let span = unsafe Span(_unsafeStart: _bufferPtr, count: 1)
+            return unsafe _overrideLifetime(span, mutating: &self)
         }
 
         /// Returns the next accumulator value.
+        @_lifetime(self: immortal)
         @inlinable
         public mutating func next() -> Result? {
             if !emittedInitial {
@@ -117,7 +173,7 @@ extension Infinite.Scan: Swift.Sequence {
 // MARK: - Sendable
 
 extension Infinite.Scan: Sendable where Source: Sendable, Result: Sendable {}
-extension Infinite.Scan.Iterator: Sendable where Source.Iterator: Sendable, Result: Sendable {}
+extension Infinite.Scan.Iterator: @unchecked Sendable where Source.Iterator: Sendable, Result: Sendable {}
 
 // MARK: - Enumerable
 
