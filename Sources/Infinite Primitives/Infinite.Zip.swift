@@ -82,10 +82,11 @@ extension Infinite.Zip {
 
     /// An iterator that pairs elements from two sources.
     ///
-    /// Uses the **heap buffer** iterator strategy: a single heap-allocated
-    /// element buffer for span-based access. One allocation per iterator
-    /// lifetime. The `deinit` ensures deterministic cleanup.
-    @safe public struct Iterator: ~Copyable, Sequence.Iterator.`Protocol` {
+    /// Uses `Optional<(First.Element, Second.Element)>` as inline storage for
+    /// span-based access. Zero heap allocation. The Optional payload is at byte
+    /// offset 0 (ABI guarantee for single-payload enums), enabling safe
+    /// reinterpretation as a `Span` via `withUnsafeMutablePointer`.
+    public struct Iterator: ~Copyable, Sequence.Iterator.`Protocol` {
         public typealias Element = (First.Element, Second.Element)
 
         @usableFromInline
@@ -95,48 +96,33 @@ extension Infinite.Zip {
         var second: Second.Iterator
 
         @usableFromInline
-        let _mutableBuffer: UnsafeMutablePointer<(First.Element, Second.Element)>
-
-        @usableFromInline
-        var _bufferPtr: UnsafePointer<(First.Element, Second.Element)>
-
-        @usableFromInline
-        var _bufferInitialized: Bool
+        var _element: (First.Element, Second.Element)? = nil
 
         @inlinable
         init(first: consuming First.Iterator, second: consuming Second.Iterator) {
             self.first = first
             self.second = second
-            let buf = UnsafeMutablePointer<(First.Element, Second.Element)>.allocate(capacity: 1)
-            unsafe self._mutableBuffer = buf
-            unsafe self._bufferPtr = UnsafePointer(buf)
-            self._bufferInitialized = false
-        }
-
-        deinit {
-            if _bufferInitialized {
-                unsafe _mutableBuffer.deinitialize(count: 1)
-            }
-            unsafe _mutableBuffer.deallocate()
         }
 
         /// Returns the next batch of elements as a contiguous span.
         @_lifetime(&self)
         @inlinable
         public mutating func nextSpan(maximumCount: Cardinal) -> Span<(First.Element, Second.Element)> {
+            let ptr = unsafe withUnsafeMutablePointer(to: &_element) { p in
+                unsafe UnsafePointer<(First.Element, Second.Element)>(
+                    unsafe UnsafeRawPointer(p).assumingMemoryBound(to: (First.Element, Second.Element).self)
+                )
+            }
             guard maximumCount > .zero else {
-                return unsafe Span(_unsafeStart: _bufferPtr, count: 0)
+                let span = unsafe Span(_unsafeStart: ptr, count: 0)
+                return unsafe _overrideLifetime(span, mutating: &self)
             }
             guard let a = first.next(), let b = second.next() else {
-                return unsafe Span(_unsafeStart: _bufferPtr, count: 0)
+                let span = unsafe Span(_unsafeStart: ptr, count: 0)
+                return unsafe _overrideLifetime(span, mutating: &self)
             }
-            let element = (a, b)
-            if _bufferInitialized {
-                unsafe _mutableBuffer.deinitialize(count: 1)
-            }
-            unsafe _mutableBuffer.initialize(to: element)
-            _bufferInitialized = true
-            let span = unsafe Span(_unsafeStart: _bufferPtr, count: 1)
+            _element = (a, b)
+            let span = unsafe Span(_unsafeStart: ptr, count: 1)
             return unsafe _overrideLifetime(span, mutating: &self)
         }
 

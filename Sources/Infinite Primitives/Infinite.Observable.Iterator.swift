@@ -10,14 +10,15 @@ public import Index_Primitives
 ///
 /// Converts coalgebraic observation (head/tail) into iterative access.
 ///
-/// Uses the **heap buffer** iterator strategy: a single heap-allocated
-/// element buffer for span-based access. One allocation per iterator
-/// lifetime. The `deinit` ensures deterministic cleanup.
+/// Uses `Optional<Source.Element>` as inline storage for span-based access.
+/// Zero heap allocation. The Optional payload is at byte offset 0
+/// (ABI guarantee for single-payload enums), enabling safe reinterpretation
+/// as a `Span<Source.Element>` via `withUnsafeMutablePointer`.
 ///
 /// - Note: This type is hoisted to module level with `__` prefix because Swift
 ///   doesn't allow types nested in protocols. The canonical name is
 ///   `Infinite.Observable.Iterator` (reflected in file name and documentation).
-@safe public struct __InfiniteObservableIterator<Source: Infinite.Observable>: ~Copyable, Sequence.Iterator.`Protocol`
+public struct __InfiniteObservableIterator<Source: Infinite.Observable>: ~Copyable, Sequence.Iterator.`Protocol`
 where Source.Tail == Source {
     public typealias Element = Source.Element
 
@@ -25,45 +26,29 @@ where Source.Tail == Source {
     var current: Source
 
     @usableFromInline
-    let _mutableBuffer: UnsafeMutablePointer<Source.Element>
-
-    @usableFromInline
-    var _bufferPtr: UnsafePointer<Source.Element>
-
-    @usableFromInline
-    var _bufferInitialized: Bool
+    var _element: Source.Element? = nil
 
     @inlinable
     init(_ source: Source) {
         self.current = source
-        let buf = UnsafeMutablePointer<Source.Element>.allocate(capacity: 1)
-        unsafe self._mutableBuffer = buf
-        unsafe self._bufferPtr = UnsafePointer(buf)
-        self._bufferInitialized = false
-    }
-
-    deinit {
-        if _bufferInitialized {
-            unsafe _mutableBuffer.deinitialize(count: 1)
-        }
-        unsafe _mutableBuffer.deallocate()
     }
 
     /// Returns the next batch of elements as a contiguous span.
     @_lifetime(&self)
     @inlinable
     public mutating func nextSpan(maximumCount: Cardinal) -> Span<Source.Element> {
+        let ptr = unsafe withUnsafeMutablePointer(to: &_element) { p in
+            unsafe UnsafePointer<Source.Element>(
+                unsafe UnsafeRawPointer(p).assumingMemoryBound(to: Source.Element.self)
+            )
+        }
         guard maximumCount > .zero else {
-            return unsafe Span(_unsafeStart: _bufferPtr, count: 0)
+            let span = unsafe Span(_unsafeStart: ptr, count: 0)
+            return unsafe _overrideLifetime(span, mutating: &self)
         }
-        let element = current.head
+        _element = current.head
         current = current.tail
-        if _bufferInitialized {
-            unsafe _mutableBuffer.deinitialize(count: 1)
-        }
-        unsafe _mutableBuffer.initialize(to: element)
-        _bufferInitialized = true
-        let span = unsafe Span(_unsafeStart: _bufferPtr, count: 1)
+        let span = unsafe Span(_unsafeStart: ptr, count: 1)
         return unsafe _overrideLifetime(span, mutating: &self)
     }
 

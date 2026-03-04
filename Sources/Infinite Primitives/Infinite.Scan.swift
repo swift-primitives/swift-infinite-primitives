@@ -79,10 +79,11 @@ extension Infinite.Scan {
 
     /// An iterator that produces running accumulations.
     ///
-    /// Uses the **heap buffer** iterator strategy: a single heap-allocated
-    /// element buffer for span-based access. One allocation per iterator
-    /// lifetime. The `deinit` ensures deterministic cleanup.
-    @safe public struct Iterator: ~Copyable, Sequence.Iterator.`Protocol` {
+    /// Uses `Optional<Result>` as inline storage for span-based access.
+    /// Zero heap allocation. The Optional payload is at byte offset 0
+    /// (ABI guarantee for single-payload enums), enabling safe reinterpretation
+    /// as a `Span<Result>` via `withUnsafeMutablePointer`.
+    public struct Iterator: ~Copyable, Sequence.Iterator.`Protocol` {
         public typealias Element = Result
 
         @usableFromInline
@@ -98,13 +99,7 @@ extension Infinite.Scan {
         var emittedInitial: Bool = false
 
         @usableFromInline
-        let _mutableBuffer: UnsafeMutablePointer<Result>
-
-        @usableFromInline
-        var _bufferPtr: UnsafePointer<Result>
-
-        @usableFromInline
-        var _bufferInitialized: Bool
+        var _element: Result? = nil
 
         @inlinable
         init(
@@ -115,43 +110,33 @@ extension Infinite.Scan {
             self.accumulator = accumulator
             self.source = source
             self.combine = combine
-            let buf = UnsafeMutablePointer<Result>.allocate(capacity: 1)
-            unsafe self._mutableBuffer = buf
-            unsafe self._bufferPtr = UnsafePointer(buf)
-            self._bufferInitialized = false
-        }
-
-        deinit {
-            if _bufferInitialized {
-                unsafe _mutableBuffer.deinitialize(count: 1)
-            }
-            unsafe _mutableBuffer.deallocate()
         }
 
         /// Returns the next batch of elements as a contiguous span.
         @_lifetime(&self)
         @inlinable
         public mutating func nextSpan(maximumCount: Cardinal) -> Span<Result> {
-            guard maximumCount > .zero else {
-                return unsafe Span(_unsafeStart: _bufferPtr, count: 0)
+            let ptr = unsafe withUnsafeMutablePointer(to: &_element) { p in
+                unsafe UnsafePointer<Result>(
+                    unsafe UnsafeRawPointer(p).assumingMemoryBound(to: Result.self)
+                )
             }
-            let element: Result
+            guard maximumCount > .zero else {
+                let span = unsafe Span(_unsafeStart: ptr, count: 0)
+                return unsafe _overrideLifetime(span, mutating: &self)
+            }
             if !emittedInitial {
                 emittedInitial = true
-                element = accumulator
+                _element = accumulator
             } else {
                 guard let sourceElement = source.next() else {
-                    return unsafe Span(_unsafeStart: _bufferPtr, count: 0)
+                    let span = unsafe Span(_unsafeStart: ptr, count: 0)
+                    return unsafe _overrideLifetime(span, mutating: &self)
                 }
                 accumulator = combine(accumulator, sourceElement)
-                element = accumulator
+                _element = accumulator
             }
-            if _bufferInitialized {
-                unsafe _mutableBuffer.deinitialize(count: 1)
-            }
-            unsafe _mutableBuffer.initialize(to: element)
-            _bufferInitialized = true
-            let span = unsafe Span(_unsafeStart: _bufferPtr, count: 1)
+            let span = unsafe Span(_unsafeStart: ptr, count: 1)
             return unsafe _overrideLifetime(span, mutating: &self)
         }
 

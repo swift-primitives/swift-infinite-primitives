@@ -64,10 +64,11 @@ extension Infinite.Map {
 
     /// An iterator that applies a transformation to each element.
     ///
-    /// Uses the **heap buffer** iterator strategy: a single heap-allocated
-    /// element buffer for span-based access. One allocation per iterator
-    /// lifetime. The `deinit` ensures deterministic cleanup.
-    @safe public struct Iterator: ~Copyable, Sequence.Iterator.`Protocol` {
+    /// Uses `Optional<Element>` as inline storage for span-based access.
+    /// Zero heap allocation. The Optional payload is at byte offset 0
+    /// (ABI guarantee for single-payload enums), enabling safe reinterpretation
+    /// as a `Span<Element>` via `withUnsafeMutablePointer`.
+    public struct Iterator: ~Copyable, Sequence.Iterator.`Protocol` {
         @usableFromInline
         var base: Source.Iterator
 
@@ -75,48 +76,33 @@ extension Infinite.Map {
         let transform: @Sendable (Source.Element) -> Element
 
         @usableFromInline
-        let _mutableBuffer: UnsafeMutablePointer<Element>
-
-        @usableFromInline
-        var _bufferPtr: UnsafePointer<Element>
-
-        @usableFromInline
-        var _bufferInitialized: Bool
+        var _element: Element? = nil
 
         @inlinable
         init(base: consuming Source.Iterator, transform: @escaping @Sendable (Source.Element) -> Element) {
             self.base = base
             self.transform = transform
-            let buf = UnsafeMutablePointer<Element>.allocate(capacity: 1)
-            unsafe self._mutableBuffer = buf
-            unsafe self._bufferPtr = UnsafePointer(buf)
-            self._bufferInitialized = false
-        }
-
-        deinit {
-            if _bufferInitialized {
-                unsafe _mutableBuffer.deinitialize(count: 1)
-            }
-            unsafe _mutableBuffer.deallocate()
         }
 
         /// Returns the next batch of elements as a contiguous span.
         @_lifetime(&self)
         @inlinable
         public mutating func nextSpan(maximumCount: Cardinal) -> Span<Element> {
+            let ptr = unsafe withUnsafeMutablePointer(to: &_element) { p in
+                unsafe UnsafePointer<Element>(
+                    unsafe UnsafeRawPointer(p).assumingMemoryBound(to: Element.self)
+                )
+            }
             guard maximumCount > .zero else {
-                return unsafe Span(_unsafeStart: _bufferPtr, count: 0)
+                let span = unsafe Span(_unsafeStart: ptr, count: 0)
+                return unsafe _overrideLifetime(span, mutating: &self)
             }
             guard let sourceElement = base.next() else {
-                return unsafe Span(_unsafeStart: _bufferPtr, count: 0)
+                let span = unsafe Span(_unsafeStart: ptr, count: 0)
+                return unsafe _overrideLifetime(span, mutating: &self)
             }
-            let transformed = transform(sourceElement)
-            if _bufferInitialized {
-                unsafe _mutableBuffer.deinitialize(count: 1)
-            }
-            unsafe _mutableBuffer.initialize(to: transformed)
-            _bufferInitialized = true
-            let span = unsafe Span(_unsafeStart: _bufferPtr, count: 1)
+            _element = transform(sourceElement)
+            let span = unsafe Span(_unsafeStart: ptr, count: 1)
             return unsafe _overrideLifetime(span, mutating: &self)
         }
 
