@@ -141,7 +141,6 @@ extension Infinite.Scan {
         }
 
         /// Returns the next accumulator value.
-        @_lifetime(self: immortal)
         @inlinable
         public mutating func next() -> Result? {
             if !emittedInitial {

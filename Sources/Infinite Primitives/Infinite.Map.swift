@@ -107,7 +107,6 @@ extension Infinite.Map {
         }
 
         /// Returns the transformed next element.
-        @_lifetime(self: immortal)
         @inlinable
         public mutating func next() -> Element? {
             base.next().map(transform)

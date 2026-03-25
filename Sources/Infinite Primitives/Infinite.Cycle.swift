@@ -109,7 +109,6 @@ extension Infinite.Cycle {
         }
 
         /// Returns the next element, wrapping to the start when exhausted.
-        @_lifetime(self: immortal)
         @inlinable
         public mutating func next() -> Base.Element? {
             let element = base[index]

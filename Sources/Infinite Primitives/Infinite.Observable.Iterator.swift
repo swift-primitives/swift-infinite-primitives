@@ -53,7 +53,6 @@ where Source.Tail == Source {
     }
 
     /// Returns the next element, advancing the iterator.
-    @_lifetime(self: immortal)
     @inlinable
     public mutating func next() -> Source.Element? {
         let element = current.head

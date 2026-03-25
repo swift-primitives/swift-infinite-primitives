@@ -127,7 +127,6 @@ extension Infinite.Zip {
         }
 
         /// Returns the next pair of elements.
-        @_lifetime(self: immortal)
         @inlinable
         public mutating func next() -> (First.Element, Second.Element)? {
             guard let a = first.next(), let b = second.next() else { return nil }
