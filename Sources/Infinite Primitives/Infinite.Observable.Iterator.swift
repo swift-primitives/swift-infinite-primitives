@@ -63,6 +63,11 @@ where Source.Tail == Source {
 
 // MARK: - Sendable
 
+// WHY: Category D — structural Sendable workaround (SP-4).
+// WHY: ~Copyable is for single-use iteration semantics, not resource ownership.
+// WHY: Generic parameter blocks structural Sendable inference.
+// WHEN TO REMOVE: When compiler gains structural Sendable through generic params.
+// TRACKING: unsafe-audit-findings.md Category D SP-4.
 extension __InfiniteObservableIterator: @unchecked Sendable where Source: Sendable {}
 
 // MARK: - Sequence Conformance

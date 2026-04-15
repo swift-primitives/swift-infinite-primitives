@@ -117,6 +117,11 @@ extension Infinite.Map {
 // MARK: - Sendable
 
 extension Infinite.Map: Sendable where Source: Sendable {}
+// WHY: Category D — structural Sendable workaround (SP-4).
+// WHY: ~Copyable is for single-use iteration semantics, not resource ownership.
+// WHY: Generic parameter blocks structural Sendable inference.
+// WHEN TO REMOVE: When compiler gains structural Sendable through generic params.
+// TRACKING: unsafe-audit-findings.md Category D SP-4.
 extension Infinite.Map.Iterator: @unchecked Sendable where Source.Iterator: Sendable {}
 
 // MARK: - Enumerable
