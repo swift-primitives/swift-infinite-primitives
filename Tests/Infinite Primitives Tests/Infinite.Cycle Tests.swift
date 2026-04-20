@@ -11,54 +11,54 @@ import Testing
 @Suite("Infinite.Cycle")
 struct InfiniteCycleTests {
     @Suite struct Unit {
-        @Test("cycles through array")
-        func cyclesThroughArray() {
+        @Test
+        func `cycles through array`() {
             let colors = Infinite.Cycle(["red", "green", "blue"])!
             let first10 = Array(colors.prefix(10))
             #expect(first10 == ["red", "green", "blue", "red", "green", "blue", "red", "green", "blue", "red"])
         }
 
-        @Test("cycles through single element")
-        func cyclesThroughSingleElement() {
+        @Test
+        func `cycles through single element`() {
             let ones = Infinite.Cycle([1])!
             let first5 = Array(ones.prefix(5))
             #expect(first5 == [1, 1, 1, 1, 1])
         }
 
-        @Test("unchecked init works for non-empty")
-        func uncheckedInitWorks() {
+        @Test
+        func `unchecked init works for non-empty`() {
             let cycle = Infinite.Cycle(__unchecked: (), [1, 2, 3])
             #expect(Array(cycle.prefix(6)) == [1, 2, 3, 1, 2, 3])
         }
 
-        @Test("works with different collection types")
-        func worksWithDifferentCollectionTypes() {
+        @Test
+        func `works with different collection types`() {
             // String (collection of characters)
             let chars = Infinite.Cycle("abc")!
             let first6 = Array(chars.prefix(6))
             #expect(first6 == ["a", "b", "c", "a", "b", "c"])
         }
 
-        @Test("head returns first element")
-        func headReturnsFirstElement() {
+        @Test
+        func `head returns first element`() {
             let cycle = Infinite.Cycle([1, 2, 3])!
             #expect(cycle.head == 1)
         }
 
-        @Test("tail head returns second element")
-        func tailHeadReturnsSecondElement() {
+        @Test
+        func `tail head returns second element`() {
             let cycle = Infinite.Cycle([1, 2, 3])!
             #expect(cycle.tail.head == 2)
         }
 
-        @Test("tail wraps around")
-        func tailWrapsAround() {
+        @Test
+        func `tail wraps around`() {
             let cycle = Infinite.Cycle([1, 2, 3])!
             #expect(cycle.tail.tail.tail.head == 1)
         }
 
-        @Test("head/tail matches iteration for first few elements")
-        func headTailMatchesIteration() {
+        @Test
+        func `head/tail matches iteration for first few elements`() {
             let cycle = Infinite.Cycle([1, 2, 3])!
 
             // Since tail type changes after first access (becomes Rotated),
@@ -69,15 +69,15 @@ struct InfiniteCycleTests {
             #expect(iteratedValues == [1, 2, 3, 1, 2, 3])
         }
 
-        @Test("equal bases are equal")
-        func equalBasesAreEqual() {
+        @Test
+        func `equal bases are equal`() {
             let a = Infinite.Cycle([1, 2, 3])!
             let b = Infinite.Cycle([1, 2, 3])!
             #expect(a == b)
         }
 
-        @Test("different bases are not equal")
-        func differentBasesAreNotEqual() {
+        @Test
+        func `different bases are not equal`() {
             let a = Infinite.Cycle([1, 2, 3])!
             let b = Infinite.Cycle([1, 2, 4])!
             #expect(a != b)
@@ -85,8 +85,8 @@ struct InfiniteCycleTests {
     }
 
     @Suite struct EdgeCase {
-        @Test("init returns nil for empty collection")
-        func initReturnsNilForEmpty() {
+        @Test
+        func `init returns nil for empty collection`() {
             let empty: Infinite.Cycle<[Int]>? = Infinite.Cycle([])
             #expect(empty == nil)
         }

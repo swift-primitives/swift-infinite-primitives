@@ -11,8 +11,8 @@ import Testing
 @Suite("Infinite.Scan")
 struct InfiniteScanTests {
     @Suite struct Unit {
-        @Test("running sum")
-        func runningSum() {
+        @Test
+        func `running sum`() {
             let naturals = Infinite.Iterate(initial: 1) { $0 + 1 }
             let runningSums = Infinite.Scan(initial: 0, source: naturals) { acc, n in acc + n }
             let first6 = Array(runningSums.prefix(6))
@@ -20,8 +20,8 @@ struct InfiniteScanTests {
             #expect(first6 == [0, 1, 3, 6, 10, 15])
         }
 
-        @Test("running product (factorials)")
-        func runningProduct() {
+        @Test
+        func `running product (factorials)`() {
             let naturals = Infinite.Iterate(initial: 1) { $0 + 1 }
             let factorials = Infinite.Scan(initial: 1, source: naturals) { acc, n in acc * n }
             let first6 = Array(factorials.prefix(6))
@@ -29,24 +29,24 @@ struct InfiniteScanTests {
             #expect(first6 == [1, 1, 2, 6, 24, 120])
         }
 
-        @Test("extension method")
-        func extensionMethod() {
+        @Test
+        func `extension method`() {
             let ones = Infinite.Repeat(1)
             let runningSums = ones.scan(initial: 0) { acc, _ in acc + 1 }
             let first5 = Array(runningSums.prefix(5))
             #expect(first5 == [0, 1, 2, 3, 4])
         }
 
-        @Test("starts with initial value")
-        func startsWithInitialValue() {
+        @Test
+        func `starts with initial value`() {
             let naturals = Infinite.Iterate(initial: 100) { $0 + 1 }
             let scanned = Infinite.Scan(initial: 42, source: naturals) { acc, _ in acc }
             let first1 = Array(scanned.prefix(1))
             #expect(first1 == [42])
         }
 
-        @Test("type transformation in scan")
-        func typeTransformationInScan() {
+        @Test
+        func `type transformation in scan`() {
             let naturals = Infinite.Iterate(initial: 1) { $0 + 1 }
             let strings = Infinite.Scan(initial: "", source: naturals) { acc, n in
                 acc.isEmpty ? String(n) : acc + "," + String(n)
@@ -55,8 +55,8 @@ struct InfiniteScanTests {
             #expect(first4 == ["", "1", "1,2", "1,2,3"])
         }
 
-        @Test("scan with complex accumulator")
-        func scanWithComplexAccumulator() {
+        @Test
+        func `scan with complex accumulator`() {
             struct Stats: Equatable, Sendable {
                 var sum: Int
                 var count: Int

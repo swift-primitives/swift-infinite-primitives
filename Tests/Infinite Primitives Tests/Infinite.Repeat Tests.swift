@@ -11,34 +11,34 @@ import Testing
 @Suite("Infinite.Repeat")
 struct InfiniteRepeatTests {
     @Suite struct Unit {
-        @Test("init stores value")
-        func initStoresValue() {
+        @Test
+        func `init stores value`() {
             let repeat42 = Infinite.Repeat(42)
             #expect(repeat42.value == 42)
         }
 
-        @Test("head returns stored value")
-        func headReturnsStoredValue() {
+        @Test
+        func `head returns stored value`() {
             let repeat42 = Infinite.Repeat(42)
             #expect(repeat42.head == 42)
         }
 
-        @Test("tail returns self")
-        func tailReturnsSelf() {
+        @Test
+        func `tail returns self`() {
             let repeat42 = Infinite.Repeat(42)
             #expect(repeat42.tail.value == 42)
             #expect(repeat42.tail.tail.value == 42)
         }
 
-        @Test("iteration produces constant sequence")
-        func iterationProducesConstantSequence() {
+        @Test
+        func `iteration produces constant sequence`() {
             let ones = Infinite.Repeat(1)
             let first10 = Array(ones.prefix(10))
             #expect(first10 == [1, 1, 1, 1, 1, 1, 1, 1, 1, 1])
         }
 
-        @Test("works with different types")
-        func worksWithDifferentTypes() {
+        @Test
+        func `works with different types`() {
             let strings = Infinite.Repeat("hello")
             #expect(Array(strings.prefix(3)) == ["hello", "hello", "hello"])
 
@@ -46,29 +46,29 @@ struct InfiniteRepeatTests {
             #expect(Array(doubles.prefix(2)) == [3.14, 3.14])
         }
 
-        @Test("equal values are equal")
-        func equalValuesAreEqual() {
+        @Test
+        func `equal values are equal`() {
             let a = Infinite.Repeat(42)
             let b = Infinite.Repeat(42)
             #expect(a == b)
         }
 
-        @Test("different values are not equal")
-        func differentValuesAreNotEqual() {
+        @Test
+        func `different values are not equal`() {
             let a = Infinite.Repeat(42)
             let b = Infinite.Repeat(43)
             #expect(a != b)
         }
 
-        @Test("equal values have same hash")
-        func equalValuesHaveSameHash() {
+        @Test
+        func `equal values have same hash`() {
             let a = Infinite.Repeat(42)
             let b = Infinite.Repeat(42)
             #expect(a.hashValue == b.hashValue)
         }
 
-        @Test("can be used in Set")
-        func canBeUsedInSet() {
+        @Test
+        func `can be used in Set`() {
             let set: Set<Infinite.Repeat<Int>> = [
                 Infinite.Repeat(1),
                 Infinite.Repeat(2),

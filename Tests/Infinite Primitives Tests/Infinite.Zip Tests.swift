@@ -11,8 +11,8 @@ import Testing
 @Suite("Infinite.Zip")
 struct InfiniteZipTests {
     @Suite struct Unit {
-        @Test("zips naturals with squares")
-        func zipsNaturalsWithSquares() {
+        @Test
+        func `zips naturals with squares`() {
             let naturals = Infinite.Iterate(initial: 0) { $0 + 1 }
             let squares = naturals.map { $0 * $0 }
             let zipped = Infinite.Zip(naturals, squares)
@@ -26,8 +26,8 @@ struct InfiniteZipTests {
             #expect(first5[4].0 == 4 && first5[4].1 == 16)
         }
 
-        @Test("static convenience method")
-        func staticConvenienceMethod() {
+        @Test
+        func `static convenience method`() {
             let ones = Infinite.Repeat(1)
             let twos = Infinite.Repeat(2)
             let zipped = Infinite.zip(ones, twos)
@@ -39,8 +39,8 @@ struct InfiniteZipTests {
             #expect(first3[2].0 == 1 && first3[2].1 == 2)
         }
 
-        @Test("zips different types")
-        func zipsDifferentTypes() {
+        @Test
+        func `zips different types`() {
             let naturals = Infinite.Iterate(initial: 0) { $0 + 1 }
             let letters = Infinite.Cycle("abc")!
             let zipped = Infinite.Zip(naturals, letters)
@@ -53,8 +53,8 @@ struct InfiniteZipTests {
             #expect(first6[3].0 == 3 && first6[3].1 == "a")
         }
 
-        @Test("head returns paired heads")
-        func headReturnsPairedHeads() {
+        @Test
+        func `head returns paired heads`() {
             let ones = Infinite.Repeat(1)
             let twos = Infinite.Repeat(2)
             let zipped = Infinite.Zip(ones, twos)
@@ -64,8 +64,8 @@ struct InfiniteZipTests {
             #expect(head.1 == 2)
         }
 
-        @Test("tail returns zipped tails")
-        func tailReturnsZippedTails() {
+        @Test
+        func `tail returns zipped tails`() {
             let naturals = Infinite.Iterate(initial: 0) { $0 + 1 }
             let squares = naturals.map { $0 * $0 }
             let zipped = Infinite.Zip(naturals, squares)
@@ -79,8 +79,8 @@ struct InfiniteZipTests {
             #expect(tailTailHead.1 == 4)
         }
 
-        @Test("head/tail matches iteration")
-        func headTailMatchesIteration() {
+        @Test
+        func `head/tail matches iteration`() {
             let naturals = Infinite.Iterate(initial: 0) { $0 + 1 }
             let squares = naturals.map { $0 * $0 }
             let zipped = Infinite.Zip(naturals, squares)
