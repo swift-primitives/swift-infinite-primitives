@@ -25,7 +25,7 @@ extension Infinite {
     ///
     /// In category theory, this is the unique morphism from the terminal object
     /// to the carrier of the stream coalgebra.
-    public struct Repeat<Element: Sendable>: Sendable {
+    public struct Repeat<Element> {
         /// The value repeated infinitely.
         public let value: Element
 
@@ -39,6 +39,10 @@ extension Infinite {
     }
 }
 
+// MARK: - Sendable
+
+extension Infinite.Repeat: Sendable where Element: Sendable {}
+
 // MARK: - Observable
 
 extension Infinite.Repeat: Infinite.Observable {
@@ -51,40 +55,15 @@ extension Infinite.Repeat: Infinite.Observable {
     public var tail: Self { self }
 }
 
-// MARK: - Sequence
-
-extension Infinite.Repeat: Sequence {
-    /// Returns an iterator over this infinite repetition.
-    @inlinable
-    public func makeIterator() -> Iterator {
-        Iterator(value)
-    }
-
-    /// An iterator that produces the same value indefinitely.
-    public struct Iterator: IteratorProtocol, Sendable {
-        @usableFromInline
-        let value: Element
-
-        @inlinable
-        init(_ value: Element) {
-            self.value = value
-        }
-
-        /// Returns the repeated value.
-        @inlinable
-        public mutating func next() -> Element? {
-            value
-        }
-    }
-}
-
 // MARK: - Enumerable
-
-extension Infinite.Repeat: Infinite.Enumerable {}
+//
+// Sequence conformance is provided via Observable: Enumerable: Sequence.
+// Iterator is Infinite.Observable.Iterator (see Infinite.Observable.Iterator.swift).
 
 // MARK: - Equatable
 
 extension Infinite.Repeat: Equatable where Element: Equatable {
+    /// Returns whether two repetitions carry equal repeated values.
     @inlinable
     public static func == (lhs: Self, rhs: Self) -> Bool {
         lhs.value == rhs.value
@@ -94,6 +73,7 @@ extension Infinite.Repeat: Equatable where Element: Equatable {
 // MARK: - Hashable
 
 extension Infinite.Repeat: Hashable where Element: Hashable {
+    /// Feeds the repeated value into the given hasher.
     @inlinable
     public func hash(into hasher: inout Hasher) {
         hasher.combine(value)

@@ -1,6 +1,8 @@
 // Infinite.Scan.swift
 // Running accumulation over an infinite sequence (scanl).
 
+public import Iterator_Protocol
+
 extension Infinite {
     /// An infinite sequence of running accumulations.
     ///
@@ -13,11 +15,11 @@ extension Infinite {
     /// // Running sum of natural numbers
     /// let naturals = Infinite.Iterate(initial: 1) { $0 + 1 }
     /// let runningSums = Infinite.Scan(initial: 0, source: naturals) { acc, n in acc + n }
-    /// print(Array(runningSums.prefix(6))) // [0, 1, 3, 6, 10, 15]
+    /// let first6 = runningSums.prefix(6) // [0, 1, 3, 6, 10, 15]
     ///
     /// // Using the extension method
     /// let factorials = naturals.scan(initial: 1) { acc, n in acc * n }
-    /// print(Array(factorials.prefix(6))) // [1, 1, 2, 6, 24, 120]
+    /// let first6fac = factorials.prefix(6) // [1, 1, 2, 6, 24, 120]
     /// ```
     ///
     /// ## Behavior
@@ -34,7 +36,7 @@ extension Infinite {
     /// ```
     /// scan(s, xs, f) = s : scan(f(s, head(xs)), tail(xs), f)
     /// ```
-    public struct Scan<Source: Infinite.Enumerable & Sendable, Result: Sendable>: Sendable {
+    public struct Scan<Source: Infinite.Enumerable, Result> {
         /// The initial accumulator value.
         @usableFromInline
         let initial: Result
@@ -66,9 +68,9 @@ extension Infinite {
     }
 }
 
-// MARK: - Sequence
+// MARK: - Iteration
 
-extension Infinite.Scan: Sequence {
+extension Infinite.Scan {
     /// Returns an iterator over this scanning sequence.
     @inlinable
     public func makeIterator() -> Iterator {
@@ -76,7 +78,15 @@ extension Infinite.Scan: Sequence {
     }
 
     /// An iterator that produces running accumulations.
-    public struct Iterator: IteratorProtocol {
+    ///
+    /// Uses `Optional<Result>` as inline storage for span-based access.
+    /// Zero heap allocation. The Optional payload is at byte offset 0
+    /// (ABI guarantee for single-payload enums), enabling safe reinterpretation
+    /// as a `Span<Result>` via `withUnsafeMutablePointer`.
+    public struct Iterator: ~Copyable, Iterator_Primitive.Iterator.`Protocol` {
+        /// The element type: the running accumulator's result type.
+        public typealias Element = Result
+
         @usableFromInline
         var accumulator: Result
 
@@ -92,7 +102,7 @@ extension Infinite.Scan: Sequence {
         @inlinable
         init(
             accumulator: Result,
-            source: Source.Iterator,
+            source: consuming Source.Iterator,
             combine: @escaping @Sendable (Result, Source.Element) -> Result
         ) {
             self.accumulator = accumulator
@@ -114,7 +124,15 @@ extension Infinite.Scan: Sequence {
     }
 }
 
-extension Infinite.Scan.Iterator: Sendable where Source.Iterator: Sendable {}
+// MARK: - Sendable
+
+extension Infinite.Scan: Sendable where Source: Sendable, Result: Sendable {}
+// WHY: Category D — structural Sendable workaround (SP-4).
+// WHY: ~Copyable is for single-use iteration semantics, not resource ownership.
+// WHY: Generic parameter blocks structural Sendable inference.
+// WHEN TO REMOVE: When compiler gains structural Sendable through generic params.
+// TRACKING: unsafe-audit-findings.md Category D SP-4.
+extension Infinite.Scan.Iterator: @unchecked Sendable where Source.Iterator: Sendable, Result: Sendable {}
 
 // MARK: - Enumerable
 
@@ -122,7 +140,7 @@ extension Infinite.Scan: Infinite.Enumerable {}
 
 // MARK: - Enumerable Extension
 
-extension Infinite.Enumerable where Self: Sendable {
+extension Infinite.Enumerable {
     /// Returns an infinite sequence of running accumulations.
     ///
     /// - Parameters:
@@ -130,7 +148,7 @@ extension Infinite.Enumerable where Self: Sendable {
     ///   - combine: A function that combines the accumulator with each element.
     /// - Returns: An infinite sequence of accumulator values.
     @inlinable
-    public func scan<T: Sendable>(
+    public func scan<T>(
         initial: T,
         _ combine: @escaping @Sendable (T, Element) -> T
     ) -> Infinite.Scan<Self, T> {

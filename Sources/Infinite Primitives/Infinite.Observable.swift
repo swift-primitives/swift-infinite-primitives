@@ -57,7 +57,7 @@ extension Infinite {
     /// The `Tail` associated type is constrained to `Observable` with matching `Element`.
     /// This captures the coalgebraic essence: the tail of an infinite sequence is also
     /// an infinite sequence of the same element type.
-    public protocol Observable: Enumerable, Sendable where Element: Sendable {
+    public protocol Observable: Enumerable {
         /// The type of the tail (remaining sequence after head).
         ///
         /// Often `Self`, but may differ for transformer types like `Map` or `Zip`.
@@ -69,39 +69,5 @@ extension Infinite {
 
         /// The infinite sequence following the head.
         var tail: Tail { get }
-    }
-}
-
-// MARK: - Homogeneous Observable Iterator
-
-/// An iterator for Observable types where Tail == Self.
-///
-/// Converts coalgebraic observation (head/tail) into iterative access.
-/// Only available when the tail type equals the source type, enabling
-/// efficient iteration without type erasure.
-public struct HomogeneousObservableIterator<Source: Infinite.Observable>: IteratorProtocol, Sendable
-where Source.Tail == Source {
-    @usableFromInline
-    var current: Source
-
-    @inlinable
-    init(_ source: Source) {
-        self.current = source
-    }
-
-    /// Returns the next element, advancing the iterator.
-    @inlinable
-    public mutating func next() -> Source.Element? {
-        let element = current.head
-        current = current.tail
-        return element
-    }
-}
-
-extension Infinite.Observable where Tail == Self {
-    /// Returns an iterator for homogeneous observable sequences.
-    @inlinable
-    public func makeIterator() -> HomogeneousObservableIterator<Self> {
-        HomogeneousObservableIterator(self)
     }
 }

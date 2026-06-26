@@ -1,6 +1,9 @@
 // Infinite.Cycle.swift
 // Cycling through a finite collection indefinitely.
 
+public import Collection_Primitives
+public import Iterator_Protocol
+
 extension Infinite {
     /// An infinite sequence that cycles through a finite collection.
     ///
@@ -11,7 +14,7 @@ extension Infinite {
     ///
     /// ```swift
     /// let colors = Infinite.Cycle(["red", "green", "blue"])!
-    /// print(Array(colors.prefix(7)))
+    /// let first7 = colors.prefix(7)
     /// // ["red", "green", "blue", "red", "green", "blue", "red"]
     /// ```
     ///
@@ -24,9 +27,8 @@ extension Infinite {
     ///
     /// `Cycle` conforms to `Observable` when the base collection is a
     /// `RandomAccessCollection`, enabling efficient head/tail decomposition.
-    /// For other collection types, only `Sequence` and `Enumerable` are provided.
-    public struct Cycle<Base: Collection & Sendable>: Sendable
-    where Base.Element: Sendable {
+    /// For other collection types, only `Enumerable` is provided.
+    public struct Cycle<Base: Swift.Collection> {
         /// The finite collection being cycled.
         @usableFromInline
         let base: Base
@@ -34,7 +36,6 @@ extension Infinite {
         /// Creates a cycling sequence, returning `nil` if the collection is empty.
         ///
         /// - Parameter base: A non-empty collection to cycle through.
-        /// - Returns: The cycling sequence, or `nil` if `base` is empty.
         @inlinable
         public init?(_ base: Base) {
             guard !base.isEmpty else { return nil }
@@ -43,8 +44,9 @@ extension Infinite {
 
         /// Creates a cycling sequence without emptiness checking.
         ///
-        /// - Parameter __unchecked: Marker parameter indicating unchecked access.
-        /// - Parameter base: Must be non-empty.
+        /// - Parameters:
+        ///   - __unchecked: Marker parameter indicating unchecked access.
+        ///   - base: Must be non-empty.
         @inlinable
         public init(__unchecked: Void, _ base: Base) {
             self.base = base
@@ -52,9 +54,9 @@ extension Infinite {
     }
 }
 
-// MARK: - Sequence
+// MARK: - Iteration
 
-extension Infinite.Cycle: Sequence {
+extension Infinite.Cycle {
     /// Returns an iterator over this cycling sequence.
     @inlinable
     public func makeIterator() -> Iterator {
@@ -62,7 +64,15 @@ extension Infinite.Cycle: Sequence {
     }
 
     /// An iterator that cycles through a collection indefinitely.
-    public struct Iterator: IteratorProtocol {
+    ///
+    /// Uses `Optional<Base.Element>` as inline storage for span-based access.
+    /// Zero heap allocation. The Optional payload is at byte offset 0
+    /// (ABI guarantee for single-payload enums), enabling safe reinterpretation
+    /// as a `Span<Base.Element>` via `withUnsafeMutablePointer`.
+    public struct Iterator: ~Copyable, Iterator_Primitive.Iterator.`Protocol` {
+        /// The element type: the base collection's element.
+        public typealias Element = Base.Element
+
         @usableFromInline
         let base: Base
 
@@ -88,7 +98,15 @@ extension Infinite.Cycle: Sequence {
     }
 }
 
-extension Infinite.Cycle.Iterator: Sendable where Base.Index: Sendable {}
+// MARK: - Sendable
+
+extension Infinite.Cycle: Sendable where Base: Sendable {}
+// WHY: Category D — structural Sendable workaround (SP-4).
+// WHY: ~Copyable is for single-use iteration semantics, not resource ownership.
+// WHY: Generic parameter blocks structural Sendable inference.
+// WHEN TO REMOVE: When compiler gains structural Sendable through generic params.
+// TRACKING: unsafe-audit-findings.md Category D SP-4.
+extension Infinite.Cycle.Iterator: @unchecked Sendable where Base: Sendable, Base.Index: Sendable {}
 
 // MARK: - Enumerable
 
@@ -96,7 +114,7 @@ extension Infinite.Cycle: Infinite.Enumerable {}
 
 // MARK: - Observable (RandomAccessCollection)
 
-extension Infinite.Cycle: Infinite.Observable where Base: RandomAccessCollection {
+extension Infinite.Cycle: Infinite.Observable where Base: Swift.RandomAccessCollection {
     /// The first element of the cycle (same as first element of base).
     @inlinable
     public var head: Base.Element {
@@ -107,57 +125,16 @@ extension Infinite.Cycle: Infinite.Observable where Base: RandomAccessCollection
     ///
     /// For efficiency, this shifts the internal view rather than copying.
     @inlinable
-    public var tail: Infinite.Cycle<RotatedCollection<Base>> {
-        let rotated = RotatedCollection(base: base, startOffset: 1)
-        return Infinite.Cycle<RotatedCollection<Base>>(__unchecked: (), rotated)
+    public var tail: Infinite.Cycle<Collection.Rotated<Base>> {
+        let rotated = Collection.Rotated(base: base, startOffset: .one)
+        return Infinite.Cycle<Collection.Rotated<Base>>(__unchecked: (), rotated)
     }
-}
-
-/// A collection that presents a rotated view of another collection.
-///
-/// Used internally by `Cycle` to implement efficient `tail` without copying.
-public struct RotatedCollection<Base: RandomAccessCollection & Sendable>: RandomAccessCollection, Sendable
-where Base.Element: Sendable {
-    @usableFromInline
-    let base: Base
-
-    @usableFromInline
-    let startOffset: Int
-
-    @inlinable
-    init(base: Base, startOffset: Int) {
-        self.base = base
-        self.startOffset = startOffset % base.count
-    }
-
-    @inlinable
-    public var startIndex: Int { 0 }
-
-    @inlinable
-    public var endIndex: Int { base.count }
-
-    @inlinable
-    public subscript(position: Int) -> Base.Element {
-        let actualIndex = (startOffset + position) % base.count
-        return base[base.index(base.startIndex, offsetBy: actualIndex)]
-    }
-
-    @inlinable
-    public func index(after i: Int) -> Int { i + 1 }
-
-    @inlinable
-    public func index(before i: Int) -> Int { i - 1 }
-
-    @inlinable
-    public func index(_ i: Int, offsetBy distance: Int) -> Int { i + distance }
-
-    @inlinable
-    public func distance(from start: Int, to end: Int) -> Int { end - start }
 }
 
 // MARK: - Equatable
 
 extension Infinite.Cycle: Equatable where Base: Equatable {
+    /// Returns whether two cycling sequences wrap equal base collections.
     @inlinable
     public static func == (lhs: Self, rhs: Self) -> Bool {
         lhs.base == rhs.base
@@ -167,6 +144,7 @@ extension Infinite.Cycle: Equatable where Base: Equatable {
 // MARK: - Hashable
 
 extension Infinite.Cycle: Hashable where Base: Hashable {
+    /// Feeds the base collection into the given hasher.
     @inlinable
     public func hash(into hasher: inout Hasher) {
         hasher.combine(base)

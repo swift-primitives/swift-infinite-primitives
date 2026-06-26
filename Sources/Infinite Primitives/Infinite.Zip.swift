@@ -1,6 +1,8 @@
 // Infinite.Zip.swift
 // Element-wise combination of two infinite sequences.
 
+public import Iterator_Protocol
+
 extension Infinite {
     /// An infinite sequence combining elements from two sources pairwise.
     ///
@@ -13,7 +15,7 @@ extension Infinite {
     /// let naturals = Infinite.Iterate(initial: 0) { $0 + 1 }
     /// let squares = naturals.map { $0 * $0 }
     /// let pairs = Infinite.Zip(naturals, squares)
-    /// print(Array(pairs.prefix(5)))
+    /// let first5 = pairs.prefix(5)
     /// // [(0, 0), (1, 1), (2, 4), (3, 9), (4, 16)]
     ///
     /// // Using static convenience
@@ -29,8 +31,7 @@ extension Infinite {
     ///
     /// `Zip` conforms to `Observable` when both sources do. The `Tail` type
     /// is `Zip<First.Tail, Second.Tail>`.
-    public struct Zip<First: Infinite.Enumerable & Sendable, Second: Infinite.Enumerable & Sendable>: Sendable
-    where First.Element: Sendable, Second.Element: Sendable {
+    public struct Zip<First: Infinite.Enumerable, Second: Infinite.Enumerable> {
         /// The first source sequence.
         @usableFromInline
         let first: First
@@ -62,21 +63,17 @@ extension Infinite {
     ///   - second: The second infinite sequence.
     /// - Returns: An infinite sequence of paired elements.
     @inlinable
-    public static func zip<First: Infinite.Enumerable & Sendable, Second: Infinite.Enumerable & Sendable>(
+    public static func zip<First: Enumerable, Second: Enumerable>(
         _ first: First,
         _ second: Second
-    ) -> Infinite.Zip<First, Second>
-    where First.Element: Sendable, Second.Element: Sendable {
-        Infinite.Zip(first, second)
+    ) -> Self.Zip<First, Second> {
+        Self.Zip(first, second)
     }
 }
 
-// MARK: - Sequence
+// MARK: - Iteration
 
-extension Infinite.Zip: Sequence {
-    /// The element type: a tuple of elements from both sources.
-    public typealias Element = (First.Element, Second.Element)
-
+extension Infinite.Zip {
     /// Returns an iterator over this zipped sequence.
     @inlinable
     public func makeIterator() -> Iterator {
@@ -84,7 +81,15 @@ extension Infinite.Zip: Sequence {
     }
 
     /// An iterator that pairs elements from two sources.
-    public struct Iterator: IteratorProtocol {
+    ///
+    /// Uses `Optional<(First.Element, Second.Element)>` as inline storage for
+    /// span-based access. Zero heap allocation. The Optional payload is at byte
+    /// offset 0 (ABI guarantee for single-payload enums), enabling safe
+    /// reinterpretation as a `Span` via `withUnsafeMutablePointer`.
+    public struct Iterator: ~Copyable, Iterator_Primitive.Iterator.`Protocol` {
+        /// The element type: a pair of one element drawn from each source sequence.
+        public typealias Element = (First.Element, Second.Element)
+
         @usableFromInline
         var first: First.Iterator
 
@@ -92,7 +97,7 @@ extension Infinite.Zip: Sequence {
         var second: Second.Iterator
 
         @inlinable
-        init(first: First.Iterator, second: Second.Iterator) {
+        init(first: consuming First.Iterator, second: consuming Second.Iterator) {
             self.first = first
             self.second = second
         }
@@ -106,7 +111,15 @@ extension Infinite.Zip: Sequence {
     }
 }
 
-extension Infinite.Zip.Iterator: Sendable where First.Iterator: Sendable, Second.Iterator: Sendable {}
+// MARK: - Sendable
+
+extension Infinite.Zip: Sendable where First: Sendable, Second: Sendable {}
+// WHY: Category D — structural Sendable workaround (SP-4).
+// WHY: ~Copyable is for single-use iteration semantics, not resource ownership.
+// WHY: Generic parameter blocks structural Sendable inference.
+// WHEN TO REMOVE: When compiler gains structural Sendable through generic params.
+// TRACKING: unsafe-audit-findings.md Category D SP-4.
+extension Infinite.Zip.Iterator: @unchecked Sendable where First.Iterator: Sendable, Second.Iterator: Sendable {}
 
 // MARK: - Enumerable
 
